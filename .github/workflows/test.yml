@@ -4,7 +4,7 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     branches:
-    - main
+      - main
   push:
     branches:
       - main
@@ -14,69 +14,30 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
-        neovim: [v0.10.0, v0.11.0, stable, nightly]
-        luaVersion: ["luajit-openresty"]
-        include:
-        - os: "windows-latest"
-          toolchain: "msvc"
-          luaVersion: "5.1"
-          neovim: "v0.10.0"
-        - os: "windows-latest"
-          toolchain: "msvc"
-          luaVersion: "5.1"
-          neovim: "stable"
-        - os: "windows-latest"
-          toolchain: "msvc"
-          luaVersion: "5.1"
-          neovim: "nightly"
+        neovim: [stable, nightly]
 
     runs-on: ${{ matrix.os }}
-    name: "OS: ${{ matrix.os }} - Neovim: ${{ matrix.neovim }} - Lua: ${{ matrix.luaVersion }}"
+    name: "OS: ${{ matrix.os }} - Neovim: ${{ matrix.neovim }}"
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@master
-
-    - name: Install Neovim
-      uses: rhysd/action-setup-vim@v1
-      with:
-        neovim: true
-        version: ${{ matrix.neovim }}
-
-    - name: Setup MSVC
-      # the 'luarocks/gh-actions-lua' step requires msvc to build PUC-Rio Lua
-      # versions on Windows (LuaJIT will be build using MinGW/gcc).
-      if: ${{ matrix.toolchain == 'msvc' }}
-      uses: ilammy/msvc-dev-cmd@v1
-
-    - name: Install Lua
-      uses: luarocks/gh-actions-lua@v11
-      with:
-        luaVersion: "${{ matrix.luaVersion }}"
-
-    - name: Install LuaRocks
-      # TODO: Replace with https://github.com/luarocks/gh-actions-luarocks after v6+
-      uses: ColinKennedy/gh-actions-luarocks@v1.0.0
-
-    - name: Print Versions
-      run: |
-        luarocks --version
-
-    # We need this hack until a better solution is available.
-    #
-    # Reference: https://github.com/nvim-neorocks/luarocks-tag-release/issues/435
-    #
-    - name: Expand The Template Rockspec
-      uses: ColinKennedy/luarocks-rockspec-expander@v1.0.1
-      with:
-        input: template.rockspec
-        output: nvim-best-practices-plugin-template-scm-1.rockspec
-        delete_input_after: true
-
-    - name: Build Test Dependencies
-      run: |
-        luarocks test nvim-best-practices-plugin-template-scm-1.rockspec --prepare
-
-    - name: Test
-      run: |
-        luarocks test --test-type busted
+      - uses: actions/checkout@v4
+      - uses: rhysd/action-setup-vim@v1
+        with:
+          neovim: true
+          version: ${{ matrix.neovim }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Setup Lua test environment
+        run: |
+          sudo apt-get update && sudo apt-get install -y libreadline-dev || true
+          pip install hererocks
+          hererocks .lua-env --lua 5.1 --luarocks latest
+          .lua-env/bin/luarocks install busted
+          .lua-env/bin/luarocks install nlua
+          .lua-env/bin/luarocks install luafilesystem
+      - name: Run tests
+        run: |
+          export PATH="$PWD/.lua-env/bin:$PATH"
+          eval "$(.lua-env/bin/luarocks path)"
+          busted .

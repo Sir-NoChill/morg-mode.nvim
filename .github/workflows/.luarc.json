@@ -2,13 +2,11 @@
     "diagnostics.libraryFiles": "Disable",
     "runtime.version": "LuaJIT",
     "workspace.checkThirdParty": "Disable",
-    "workspace.ignoreDir": [".dependencies", ".lua", ".luarocks"],
+    "workspace.ignoreDir": [".dependencies", ".lua", ".luarocks", ".lua-env"],
     "workspace.library": [
         "$PWD/.dependencies/busted/library",
         "$PWD/.dependencies/luassert/library",
         "$PWD/.dependencies/luvit-meta/library",
-        "$PWD/.dependencies/mega.cmdparse/lua",
-        "$PWD/.dependencies/mega.logging/lua",
         "$VIMRUNTIME/lua"
     ]
 }

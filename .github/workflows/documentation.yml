@@ -71,8 +71,8 @@ jobs:
       - name: Create User Documentation
         uses: kdheepak/panvimdoc@main
         with:
-          vimdoc: plugin-template
-          version: "Neovim >= 0.8.0"
+          vimdoc: morg-mode
+          version: "Neovim >= 0.9.0"
           demojify: true
           treesitter: true
 

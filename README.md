@@ -1,6 +1,9 @@
 # morg-mode.nvim
 
-Neovim integration for [morg-mode](../), a markdown-idiomatic org-mode replacement.
+Neovim integration for [morg-mode](https://github.com/Sir-NoChill/morg-mode), a markdown-idiomatic org-mode replacement.
+
+[![Test](https://github.com/Sir-NoChill/morg-mode.nvim/actions/workflows/test.yml/badge.svg)](https://github.com/Sir-NoChill/morg-mode.nvim/actions/workflows/test.yml)
+[![StyLua](https://github.com/Sir-NoChill/morg-mode.nvim/actions/workflows/stylua.yml/badge.svg)](https://github.com/Sir-NoChill/morg-mode.nvim/actions/workflows/stylua.yml)
 
 Thin async wrapper around the `morg` CLI — all parsing, tangling, and reporting happens in the Rust binary. The plugin provides commands, keybindings, Telescope pickers, LuaSnip snippets, and editing helpers.
 
@@ -9,17 +12,14 @@ Thin async wrapper around the `morg` CLI — all parsing, tangling, and reportin
 | Requirement | Version | Notes |
 |---|---|---|
 | Neovim | >= 0.9 | >= 0.12 for `vim.pack.add()` |
-| Rust toolchain | stable | To build the `morg` binary |
-| `morg` binary | in `$PATH` | Built from the workspace root |
+| `morg` binary | in `$PATH` | See [morg-mode](https://github.com/Sir-NoChill/morg-mode) |
 | [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim) | any | Optional — for fuzzy pickers |
 | [LuaSnip](https://github.com/L3MON4D3/LuaSnip) | any | Optional — for snippet expansion |
 
-## Building the `morg` binary
-
-From the workspace root (`morg-mode/`):
+### Installing the `morg` binary
 
 ```sh
-# Install to ~/.cargo/bin (adds to $PATH)
+# From the morg-mode repo
 cargo install --path crates/morg-mode
 
 # Verify
@@ -28,69 +28,21 @@ morg --help
 
 ## Installation
 
-### vim.pack.add (Neovim >= 0.12, built-in)
-
-`vim.pack` manages plugins as Git repositories. When `morg-mode-nvim` is
-published as its own repository (or as part of a GitHub monorepo):
+### vim.pack.add (Neovim >= 0.12)
 
 ```lua
--- In your init.lua
 vim.pack.add({
-    "your-user/morg-mode-nvim",
+    "Sir-NoChill/morg-mode.nvim",
 })
 
--- Setup
-require("morg").setup()
-```
-
-Auto-build the `morg` binary on install/update:
-
-```lua
-vim.api.nvim_create_autocmd("PackChanged", {
-    callback = function(ev)
-        if ev.data.spec.name == "morg-mode-nvim" and ev.data.kind == "install" then
-            vim.notify("morg-mode: run `cargo install --path crates/morg-mode` to build the binary")
-        end
-    end,
-})
-```
-
-### Local path (monorepo / development)
-
-If the plugin lives as a subdirectory (e.g. `morg-mode/morg-mode-nvim/`),
-`vim.pack` cannot manage it since it is not a standalone Git repository.
-Instead, add it to the runtime path directly:
-
-```lua
--- In your init.lua
--- Point to the morg-mode-nvim directory inside the monorepo
-vim.opt.rtp:prepend("/path/to/morg-mode/morg-mode-nvim")
-
-require("morg").setup({
-    binary = "/path/to/morg-mode/target/release/morg", -- or nil if `morg` is in $PATH
-})
-```
-
-Alternatively, symlink it into the pack path so Neovim discovers it
-automatically:
-
-```sh
-mkdir -p ~/.local/share/nvim/site/pack/dev/start
-ln -s /path/to/morg-mode/morg-mode-nvim ~/.local/share/nvim/site/pack/dev/start/morg-mode-nvim
-```
-
-Then in `init.lua`:
-
-```lua
 require("morg").setup()
 ```
 
 ### lazy.nvim
 
 ```lua
--- From a Git repository:
 {
-    "your-user/morg-mode-nvim",
+    "Sir-NoChill/morg-mode.nvim",
     ft = { "markdown", "morg" },
     dependencies = {
         "nvim-telescope/telescope.nvim",  -- optional
@@ -98,13 +50,14 @@ require("morg").setup()
     },
     opts = {},
 }
+```
 
--- From a local path (monorepo):
-{
-    dir = "/path/to/morg-mode/morg-mode-nvim",
-    ft = { "markdown", "morg" },
-    opts = {},
-}
+### Local development
+
+```lua
+-- From a local checkout:
+vim.opt.rtp:prepend("/path/to/morg-mode.nvim")
+require("morg").setup()
 ```
 
 ### Configuration
@@ -184,7 +137,7 @@ All pickers jump to source file:line on `<CR>`.
 
 | Key | Action |
 |---|---|
-| `<C-Space>` | Toggle checkbox (`[ ]` <-> `[x]`) |
+| `<C-Space>` | Toggle checkbox (`[ ]` \<-> `[x]`) |
 | `<leader>it` | Insert `#todo` at cursor |
 | `<leader>id` | Insert `#done` at cursor |
 | `<leader>iD` | Insert `#deadline` with today's date |
@@ -235,6 +188,7 @@ Loaded automatically when LuaSnip is available. Active in `markdown` and `morg` 
 ```
 
 Verifies:
+
 - `morg` binary is found and reports its version
 - LuaSnip availability
 - Capture template config file
@@ -245,21 +199,29 @@ Verifies:
 
 ```sh
 # Prerequisites (one-time)
-luarocks --lua-version 5.1 install busted nlua --local
+pip install hererocks
+hererocks .lua-env --lua 5.1 --luarocks latest
+.lua-env/bin/luarocks install busted nlua luafilesystem
 
-# Run Lua tests
-cd morg-mode-nvim
-eval "$(luarocks path --bin --lua-version 5.1)" && busted .
-
-# Run Rust tests (from workspace root)
-cd ..
-cargo test --workspace
+# Run tests
+export PATH="$PWD/.lua-env/bin:$PATH"
+eval "$(.lua-env/bin/luarocks path)"
+busted .
 ```
+
+### Pre-commit hooks
+
+```sh
+uv tool install pre-commit  # or pip install pre-commit
+pre-commit install
+```
+
+Hooks: `stylua --check`, `luacheck`
 
 ### Project structure
 
 ```
-morg-mode-nvim/
+morg-mode.nvim/
   plugin/morg.lua              # Entry point (lazy guard)
   lua/morg/
     init.lua                   # Setup, config, async morg.run() helper
@@ -274,3 +236,7 @@ morg-mode-nvim/
     morg.lua                   # 5 Telescope pickers
   spec/morg/                   # 30 busted tests
 ```
+
+## License
+
+MIT
